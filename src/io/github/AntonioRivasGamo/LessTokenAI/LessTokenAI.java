@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.prefs.BackingStoreException;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -52,6 +53,7 @@ import javax.swing.border.LineBorder;
 public class LessTokenAI extends JFrame {
 
     private final transient AppPreferences prefs = new AppPreferences();
+    private final transient AppUtil util = new AppUtil();
 
     private static final Color BG_DARK = new Color(13, 15, 20);
     private static final Color BG_PANEL = new Color(20, 24, 32);
@@ -232,6 +234,11 @@ public class LessTokenAI extends JFrame {
         return l;
     }
 
+    private void setStatusText(JLabel lbl, String svc, String msg, Color c) {
+        lbl.setText("● " + svc + ":  " + msg);
+        lbl.setForeground(c);
+    }
+
     private JPanel buildTextGrid() {
         JPanel grid = new JPanel(new GridLayout(2, 2, 12, 12));
         grid.setBackground(BG_DARK);
@@ -373,7 +380,7 @@ public class LessTokenAI extends JFrame {
         testTranslationBtn = accentButton(t("btn.test_translation"), ACCENT2);
         translationSavedIndicator = indicatorLabel();
         saveTranslationBtn.addActionListener(e -> saveTranslationSettings());
-        // TODO: implement testTranslationBtn logic in AppUtil
+        testTranslationBtn.addActionListener(e -> testTranslation());
         south.add(saveTranslationBtn);
         south.add(Box.createHorizontalStrut(6));
         south.add(testTranslationBtn);
@@ -381,6 +388,15 @@ public class LessTokenAI extends JFrame {
         south.add(translationSavedIndicator);
         card.add(south, BorderLayout.SOUTH);
         return card;
+    }
+
+    private void testTranslation() {
+        //TODO: Add translation URL empty to properties
+        //TODO: Add translation Key empty to properties
+        if (util.testApi(prefs.getTranslationModel(), prefs.getTranslationKey(), prefs.getTranslationUrl()))
+            setStatusText(translationStatusLabel, t("section.translation"), t("status.connected"), SUCCESS);
+        else
+            setStatusText(translationStatusLabel, t("section.translation"), t("status.disconnected"), DANGER);
     }
 
     private JPanel buildProcessingBlock() {
@@ -437,7 +453,7 @@ public class LessTokenAI extends JFrame {
         testProcessingBtn = accentButton(t("btn.test_processing"), ACCENT2);
         processingSavedIndicator = indicatorLabel();
         saveProcessingBtn.addActionListener(e -> saveProcessingSettings());
-        // TODO: implement testProcessingBtn logic in AppUtil
+        testProcessingBtn.addActionListener(e -> testProcessing());
         south.add(saveProcessingBtn);
         south.add(Box.createHorizontalStrut(6));
         south.add(testProcessingBtn);
@@ -445,6 +461,19 @@ public class LessTokenAI extends JFrame {
         south.add(processingSavedIndicator);
         card.add(south, BorderLayout.SOUTH);
         return card;
+    }
+
+    private void testProcessing() {
+        if (prefs.getProcessingKey().isEmpty()) {
+            //TODO: Add processing URL empty to properties
+            JOptionPane.showMessageDialog(this,
+                    t("saved.processing_empty"), t("warn.title"), JOptionPane.WARNING_MESSAGE);
+        } else {
+            if (util.testApi(prefs.getProcessingModel(), prefs.getProcessingKey(), prefs.getProcessingUrl()))
+                setStatusText(processingStatusLabel, t("section.processing"), t("status.connected"), SUCCESS);
+            else
+                setStatusText(processingStatusLabel, t("section.processing"), t("status.disconnected"), DANGER);
+        }
     }
 
     private JPanel buildActionBlock() {
@@ -556,15 +585,15 @@ public class LessTokenAI extends JFrame {
     private void loadSavedSettings() {
         translationUrlField.setText(prefs.getTranslationUrl());
         translationModelField.setText(prefs.getTranslationModel());
-        String translationKey = prefs.getTranslationKey();
-        if (!translationKey.isEmpty())
-            translationKeyField.setText(translationKey);
+        translationKeyField.setText(prefs.getTranslationKey());
+        if (!prefs.getTranslationKey().isEmpty())
+            testTranslation();
 
         processingUrlField.setText(prefs.getProcessingUrl());
         processingModelField.setText(prefs.getProcessingModel());
-        String processingKey = prefs.getProcessingKey();
-        if (!processingKey.isEmpty())
-            processingKeyField.setText(processingKey);
+        processingKeyField.setText(prefs.getProcessingKey());
+        if (!prefs.getProcessingKey().isEmpty())
+            testProcessing();
 
         String savedLang = prefs.getLang();
         for (int i = 0; i < targetLangCombo.getItemCount(); i++) {
