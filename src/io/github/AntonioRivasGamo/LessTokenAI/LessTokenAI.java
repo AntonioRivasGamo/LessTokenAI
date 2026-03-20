@@ -21,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.prefs.BackingStoreException;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -106,7 +105,7 @@ public class LessTokenAI extends JFrame {
                     Properties p = new Properties();
                     p.load(r);
                     return p;
-                } catch (IOException e) {
+                } catch (IOException _) {
                     // TODO: replace with logger
                 }
             }
@@ -117,7 +116,7 @@ public class LessTokenAI extends JFrame {
                 p.load(new InputStreamReader(is, StandardCharsets.UTF_8));
                 return p;
             }
-        } catch (IOException e) {
+        } catch (IOException _) {
             // TODO: replace with logger
         }
         // TODO: replace with custom LessTokenAIException
@@ -169,6 +168,7 @@ public class LessTokenAI extends JFrame {
     private JComboBox<String> targetLangCombo;
     private JButton sendBtn;
     private JLabel hintLabel;
+    private JButton clearBtn;
 
     public LessTokenAI() {
         super("〈译〉 LessTokenAI");
@@ -216,8 +216,8 @@ public class LessTokenAI extends JFrame {
 
         JPanel statuses = new JPanel(new GridLayout(2, 1, 0, 5));
         statuses.setBackground(BG_DARK);
-        translationStatusLabel = mkStatusLabel(t("section.translation"), t("status.checking"), WARNING);
-        processingStatusLabel = mkStatusLabel(t("section.processing"), t("status.checking"), WARNING);
+        translationStatusLabel = mkStatusLabel(t("section.translation"), t("status.disconnected"), DANGER);
+        processingStatusLabel = mkStatusLabel(t("section.processing"), t("status.disconnected"), DANGER);
         statuses.add(translationStatusLabel);
         statuses.add(processingStatusLabel);
 
@@ -320,8 +320,12 @@ public class LessTokenAI extends JFrame {
         hintLabel = new JLabel(t("hint"));
         hintLabel.setFont(SMALL);
         hintLabel.setForeground(TEXT_MUTED);
-        footer.add(hintLabel, BorderLayout.WEST);
 
+        clearBtn = smallButton(t("btn.clear"), DANGER);
+        clearBtn.addActionListener(e -> onClearAll());
+
+        footer.add(hintLabel, BorderLayout.WEST);
+        footer.add(clearBtn, BorderLayout.EAST);
         outer.add(footer, BorderLayout.SOUTH);
         return outer;
     }
@@ -379,8 +383,8 @@ public class LessTokenAI extends JFrame {
         saveTranslationBtn = accentButton(t("btn.save_translation"), ACCENT);
         testTranslationBtn = accentButton(t("btn.test_translation"), ACCENT2);
         translationSavedIndicator = indicatorLabel();
-        saveTranslationBtn.addActionListener(e -> saveTranslationSettings());
-        testTranslationBtn.addActionListener(e -> testTranslation());
+        saveTranslationBtn.addActionListener(e -> doSaveTranslationSettings());
+        testTranslationBtn.addActionListener(e -> doTestTranslation());
         south.add(saveTranslationBtn);
         south.add(Box.createHorizontalStrut(6));
         south.add(testTranslationBtn);
@@ -390,13 +394,24 @@ public class LessTokenAI extends JFrame {
         return card;
     }
 
-    private void testTranslation() {
-        //TODO: Add translation URL empty to properties
-        //TODO: Add translation Key empty to properties
-        if (util.testApi(prefs.getTranslationModel(), prefs.getTranslationKey(), prefs.getTranslationUrl()))
-            setStatusText(translationStatusLabel, t("section.translation"), t("status.connected"), SUCCESS);
-        else
-            setStatusText(translationStatusLabel, t("section.translation"), t("status.disconnected"), DANGER);
+    private void doTestTranslation() {
+        boolean canTest = true;
+        if (prefs.getTranslationKey().isBlank()) {
+            JOptionPane.showMessageDialog(this,
+                    t("saved.translation_key_empty"), t("warn.title"), JOptionPane.WARNING_MESSAGE);
+            canTest = false;
+        }
+        if (prefs.getTranslationUrl().isBlank()) {
+            JOptionPane.showMessageDialog(this,
+                    t("saved.translation_url_empty"), t("warn.title"), JOptionPane.WARNING_MESSAGE);
+            canTest = false;
+        }
+        if (canTest) {
+            if (util.testApi(prefs.getTranslationModel(), prefs.getTranslationKey(), prefs.getTranslationUrl()))
+                setStatusText(translationStatusLabel, t("section.translation"), t("status.connected"), SUCCESS);
+            else
+                setStatusText(translationStatusLabel, t("section.translation"), t("status.disconnected"), DANGER);
+        }
     }
 
     private JPanel buildProcessingBlock() {
@@ -425,7 +440,7 @@ public class LessTokenAI extends JFrame {
         g.gridy = 1;
         g.weightx = 0;
         g.fill = GridBagConstraints.NONE;
-        processingModelLabel = mutedLabel(t("label.translation_model"));
+        processingModelLabel = mutedLabel(t("label.processing_model"));
         fields.add(processingModelLabel, g);
         g.gridx = 1;
         g.weightx = 1;
@@ -452,8 +467,8 @@ public class LessTokenAI extends JFrame {
         saveProcessingBtn = accentButton(t("btn.save_processing"), ACCENT);
         testProcessingBtn = accentButton(t("btn.test_processing"), ACCENT2);
         processingSavedIndicator = indicatorLabel();
-        saveProcessingBtn.addActionListener(e -> saveProcessingSettings());
-        testProcessingBtn.addActionListener(e -> testProcessing());
+        saveProcessingBtn.addActionListener(e -> doSaveProcessingSettings());
+        testProcessingBtn.addActionListener(e -> doTestProcessing());
         south.add(saveProcessingBtn);
         south.add(Box.createHorizontalStrut(6));
         south.add(testProcessingBtn);
@@ -463,12 +478,19 @@ public class LessTokenAI extends JFrame {
         return card;
     }
 
-    private void testProcessing() {
-        if (prefs.getProcessingKey().isEmpty()) {
-            //TODO: Add processing URL empty to properties
+    private void doTestProcessing() {
+        boolean canTest = true;
+        if (prefs.getProcessingKey().isBlank()) {
             JOptionPane.showMessageDialog(this,
-                    t("saved.processing_empty"), t("warn.title"), JOptionPane.WARNING_MESSAGE);
-        } else {
+                    t("saved.processing_key_empty"), t("warn.title"), JOptionPane.WARNING_MESSAGE);
+            canTest = false;
+        }
+        if (prefs.getProcessingUrl().isBlank()) {
+            JOptionPane.showMessageDialog(this,
+                    t("saved.processing_url_empty"), t("warn.title"), JOptionPane.WARNING_MESSAGE);
+            canTest = false;
+        }
+        if (canTest) {
             if (util.testApi(prefs.getProcessingModel(), prefs.getProcessingKey(), prefs.getProcessingUrl()))
                 setStatusText(processingStatusLabel, t("section.processing"), t("status.connected"), SUCCESS);
             else
@@ -534,7 +556,7 @@ public class LessTokenAI extends JFrame {
 
         sectionProcessingLabel.setText(t("section.processing"));
         processingUrlLabel.setText(t("label.processing_url"));
-        processingModelLabel.setText(t("label.translation_model"));
+        processingModelLabel.setText(t("label.processing_model"));
         processingKeyLabel.setText(t("label.api_key"));
         saveProcessingBtn.setText(t("btn.save_processing"));
         testProcessingBtn.setText(t("btn.test_processing"));
@@ -542,6 +564,7 @@ public class LessTokenAI extends JFrame {
         targetLangLabel.setText(t("label.target_lang"));
         sendBtn.setText(t("btn.translate"));
         hintLabel.setText(t("hint"));
+        clearBtn.setText(t("btn.clear"));
 
         revalidate();
         repaint();
@@ -554,7 +577,7 @@ public class LessTokenAI extends JFrame {
         lbl.setText("● " + svc + ":  " + msg);
     }
 
-    private void saveTranslationSettings() {
+    private void doSaveTranslationSettings() {
         prefs.setTranslationUrl(translationUrlField.getText().trim());
         prefs.setTranslationModel(translationModelField.getText().trim());
         String key = new String(translationKeyField.getPassword()).trim();
@@ -568,7 +591,7 @@ public class LessTokenAI extends JFrame {
         }
     }
 
-    private void saveProcessingSettings() {
+    private void doSaveProcessingSettings() {
         prefs.setProcessingUrl(processingUrlField.getText().trim());
         prefs.setProcessingModel(processingModelField.getText().trim());
         String key = new String(processingKeyField.getPassword()).trim();
@@ -586,14 +609,10 @@ public class LessTokenAI extends JFrame {
         translationUrlField.setText(prefs.getTranslationUrl());
         translationModelField.setText(prefs.getTranslationModel());
         translationKeyField.setText(prefs.getTranslationKey());
-        if (!prefs.getTranslationKey().isEmpty())
-            testTranslation();
 
         processingUrlField.setText(prefs.getProcessingUrl());
         processingModelField.setText(prefs.getProcessingModel());
         processingKeyField.setText(prefs.getProcessingKey());
-        if (!prefs.getProcessingKey().isEmpty())
-            testProcessing();
 
         String savedLang = prefs.getLang();
         for (int i = 0; i < targetLangCombo.getItemCount(); i++) {
@@ -604,6 +623,8 @@ public class LessTokenAI extends JFrame {
             }
         }
         applyLanguage();
+
+        autoTest();
     }
 
     private void showIndicator(JLabel lbl, String msg, Color color) {
@@ -781,12 +802,48 @@ public class LessTokenAI extends JFrame {
         });
     }
 
+    private void onClearAll() {
+        int confirm = JOptionPane.showConfirmDialog(this,
+                t("clear.confirm.msg"),
+                t("clear.confirm.title"),
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                prefs.clear();
+            } catch (Exception ex) {
+                // TODO: logger
+            }
+            System.exit(0);
+        }
+    }
+
+    private JButton smallButton(String text, Color fg) {
+        JButton b = new JButton(text);
+        b.setFont(SMALL);
+        b.setForeground(fg);
+        b.setBackground(BG_FIELD);
+        b.setBorder(new LineBorder(fg, 1, true));
+        b.setFocusPainted(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    public void autoTest() {
+        if (!prefs.getTranslationKey().isBlank() && !prefs.getTranslationUrl().isBlank())
+            doTestTranslation();
+
+        if (!prefs.getProcessingKey().isBlank() && !prefs.getProcessingUrl().isBlank())
+            doTestProcessing();
+    }
+
     public static void main(String[] args) {
         System.setProperty("awt.useSystemAAFontSettings", "on");
         System.setProperty("swing.aatext", "true");
         try {
             UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-        } catch (Exception e) {
+        } catch (Exception _) {
             // TODO: replace with logger
         }
         UIManager.put("OptionPane.background", BG_PANEL);

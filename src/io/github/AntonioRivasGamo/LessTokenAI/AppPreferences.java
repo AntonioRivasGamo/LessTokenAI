@@ -81,5 +81,6 @@ public class AppPreferences {
 
     public void clear() throws BackingStoreException {
         prefs.clear();
+        prefs.flush();
     }
 }
