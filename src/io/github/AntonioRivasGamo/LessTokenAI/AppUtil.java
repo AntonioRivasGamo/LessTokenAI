@@ -30,7 +30,7 @@ public class AppUtil {
             HttpResponse<String> response = HttpClient.newHttpClient().send(request,
                     HttpResponse.BodyHandlers.ofString());
             return response.statusCode() == 200;
-        } catch (URISyntaxException | IOException | InterruptedException e) {
+        } catch (URISyntaxException | IOException | InterruptedException | IllegalArgumentException e) {
             // TODO Implement logger
             return false;
         }
