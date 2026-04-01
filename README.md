@@ -7,7 +7,7 @@ Simplified Chinese is one of the most token-efficient written languages. The sam
 LessTokenAI automates the whole flow locally using Ollama (or any other API):
 
 ```
-Your prompt -> Ollama compresses to Chinese -> Paid AI API -> Ollama translates response back
+Your prompt -> Free AI compresses to Chinese -> Paid AI API -> Free AI translates response back
 ```
 
 ---
