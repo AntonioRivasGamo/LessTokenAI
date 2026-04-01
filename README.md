@@ -63,7 +63,7 @@ These are approximate averages. Actual savings depend on the model, the content,
 ```
 src/io/github/AntonioRivasGamo/LessTokenAI/
 ├── LessTokenAI.java      # Swing UI
-├── AppUtil.java          # Pipeline logic (Ollama + API calls) — implement here
+├── AppUtil.java          # Pipeline logic (API calls) — implement here
 └── AppPreferences.java   # Persistent settings via java.util.prefs
 
 i18n/
